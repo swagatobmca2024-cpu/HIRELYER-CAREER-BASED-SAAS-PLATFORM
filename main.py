@@ -44,8 +44,8 @@ import torch
 from langchain_text_splitters import CharacterTextSplitter
 
 from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
-from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
