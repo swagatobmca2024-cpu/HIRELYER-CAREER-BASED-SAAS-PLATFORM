@@ -21,11 +21,14 @@ python-dotenv
 tabulate
 
 # LangChain ecosystem
+# LangChain ecosystem
 langchain
-langchain-core
 langchain-community
+langchain-core
 langchain-huggingface
 langchain-groq
+langchain-text-splitters
+
 sentence-transformers
 faiss-cpu
 xhtml2pdf
