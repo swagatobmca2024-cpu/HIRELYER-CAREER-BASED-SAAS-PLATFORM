@@ -22,6 +22,7 @@ tabulate
 
 # LangChain ecosystem
 langchain
+langchain-text-splitter
 langchain-core
 langchain-community
 langchain-huggingface
