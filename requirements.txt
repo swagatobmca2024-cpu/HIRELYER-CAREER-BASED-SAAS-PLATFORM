@@ -23,11 +23,9 @@ tabulate
 # LangChain ecosystem
 # LangChain ecosystem
 langchain
+langchain-text-splitter
 langchain-community
-langchain-core
-langchain-huggingface
 langchain-groq
-langchain-text-splitters
 
 sentence-transformers
 faiss-cpu
