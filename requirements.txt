@@ -29,3 +29,4 @@ langchain-groq
 sentence-transformers
 faiss-cpu
 xhtml2pdf
+
