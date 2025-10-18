@@ -47,6 +47,9 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from langchain_groq import ChatGroq
+from langchain_core import ConversationBufferMemory
+
+
 
 
 
