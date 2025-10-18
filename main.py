@@ -41,7 +41,8 @@ from streamlit_autorefresh import st_autorefresh
 import torch
 
 # Langchain & Embeddings
-from langchain.text_splitter import CharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter
+
 from langchain.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
