@@ -21,10 +21,18 @@ python-dotenv
 tabulate
 
 # LangChain ecosystem
+# Core LangChain packages (new modular versions)
 langchain
+langchain-core
 langchain-community
+langchain-text-splitters
 langchain-huggingface
 langchain-groq
+
+# Supporting NLP & vector libraries
 sentence-transformers
 faiss-cpu
+
+# PDF generation
 xhtml2pdf
+
