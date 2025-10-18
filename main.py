@@ -43,12 +43,13 @@ from streamlit_autorefresh import st_autorefresh
 import torch
 
 # Langchain & Embeddings
-from langchain_text_splitters import CharacterTextSplitter
-from langchain_community.vectorstores import FAISS
+from langchain_text_splitter import CharacterTextSplitter   # Note: singular 'splitter' in latest versions
+from langchain_community.vectorstores.faiss import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
-from langchain.memory import ConversationBufferMemory
+from langchain_core.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
+
 
 # Local project imports
 from llm_manager import call_llm, load_groq_api_keys
