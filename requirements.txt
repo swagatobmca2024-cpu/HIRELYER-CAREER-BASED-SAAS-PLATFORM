@@ -22,7 +22,8 @@ tabulate
 
 # LangChain ecosystem
 langchain
-langchain-community      # optional, only if you use community modules
+langchain-community 
+langchain-core
 langchain-groq           # optional, only if you use Groq integration
 
 # Embeddings and vectorstores
