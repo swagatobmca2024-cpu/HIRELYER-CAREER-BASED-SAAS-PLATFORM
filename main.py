@@ -5896,7 +5896,7 @@ with tab2:
             5. SOFTSKILLS: List 6-8 professional competencies using neutral language
             6. LANGUAGES: List only spoken/written languages
             7. INTERESTS: List 3-6 professional interests aligned with the role
-            8. CERTIFICATES: List 3-6 real, industry-recognized certifications with provider and duration
+            8. CERTIFICATES: List 3-6 real, industry-recognized certifications alligned with the role along with provider and duration
 
             DOMAIN-SPECIFIC REQUIREMENTS:
             - For Technical Roles: Focus on programming languages, frameworks, tools, methodologies
