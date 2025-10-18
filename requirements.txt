@@ -21,14 +21,14 @@ python-dotenv
 tabulate
 
 # LangChain ecosystem
-# LangChain ecosystem
 langchain
-langchain-text-splitter
-langchain-community
-langchain-groq
+langchain-community      # optional, only if you use community modules
+langchain-groq           # optional, only if you use Groq integration
 
+# Embeddings and vectorstores
 sentence-transformers
 faiss-cpu
-xhtml2pdf
 
+# PDF generation
+xhtml2pdf
 
