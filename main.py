@@ -339,7 +339,7 @@ if not st.session_state.authenticated:
 
     # -------- Sidebar --------
     with st.sidebar:
-        st.markdown("<h1 style='color:#00BFFF;'>HIRELYZER</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='color:#00BFFF;'>HIRELYZER-SMART CAREER GUIDANCE</h1>", unsafe_allow_html=True)
         st.markdown("<p style='color:#c9d1d9;'>Transform your career with AI-powered resume analysis, job matching, and smart insights.</p>", unsafe_allow_html=True)
 
         features = [
