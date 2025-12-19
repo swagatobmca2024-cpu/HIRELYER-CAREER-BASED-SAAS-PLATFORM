@@ -6,6 +6,8 @@ beautifulsoup4
 streamlit-option-menu
 numpy
 pillow
+dnspython
+
 matplotlib
 pytz
 pdfkit
@@ -22,13 +24,10 @@ tabulate
 
 # LangChain ecosystem
 langchain
-langchain-community 
-langchain-groq           # optional, only if you use Groq integration
-
-# Embeddings and vectorstores
+langchain-core
+langchain-community
+langchain-huggingface
+langchain-groq
 sentence-transformers
 faiss-cpu
-
-# PDF generation
 xhtml2pdf
-
