@@ -6263,31 +6263,33 @@ with tab2:
                 normalized_project_entries.append("Placeholder Project")
 
             enhance_prompt = f"""
-            You are a professional and unbiased Resume Optimization Specialist with deep knowledge of ATS systems
-            and industry hiring standards. Your goal is to enhance the provided resume data for the role:
-            "{st.session_state['job_title']}" — ensuring high alignment with the skills, tools, and achievements
-            expected in this profession.
+            You are a professional and unbiased Resume Optimization Specialist with deep knowledge of ATS systems,
+            industry hiring standards, and professional resume writing conventions. Your goal is to enhance the
+            provided resume data for the role:
+            "{st.session_state['job_title']}" — ensuring strong ATS alignment, linguistic precision, and
+            real-world industry relevance.
 
             ROLE-SPECIFIC INSTRUCTION:
-            - Tailor every section toward the competencies, technical skills, and accomplishments relevant to "{st.session_state['job_title']}".
-            - Infer the most essential 6–10 skills, tools, and role expectations for this position using your domain knowledge.
-            - Prioritize accuracy, relevance, and professional clarity over creative rewriting.
+            - Tailor every section strictly toward the competencies, technical skills, and outcomes expected
+              for "{st.session_state['job_title']}".
+            - Infer the most essential 6–10 role-defining skills, tools, and responsibilities using industry standards.
+            - Prioritize factual accuracy, clarity, and hiring relevance over creative or generic rewriting.
 
             LANGUAGE & TONE GUIDELINES:
-            - Maintain neutral, inclusive, and professional tone.
-            - Avoid biased or gendered terms (e.g., “rockstar,” “guru,” “ninja”).
-            - Use strong, quantifiable, action-oriented verbs.
+            - Maintain neutral, inclusive, and strictly professional tone.
+            - Avoid biased, informal, exaggerated, or marketing-style terms (e.g., “rockstar,” “guru,” “ninja”).
+            - Use concise, quantifiable, outcome-focused language.
             - Do NOT repeat the same verbs, verb roots, phrases, or semantic actions across different sections.
-            - Focus on measurable impact and role-specific outcomes.
-            - Avoid subjective adjectives like "excellent" or "great" — prefer data-driven impact.
+            - Focus on measurable impact, scope, and responsibility.
+            - Avoid subjective adjectives like "excellent" or "great" — prefer evidence-based outcomes.
 
             CRITICAL PROFESSIONAL WRITING CONSTRAINT (VERY IMPORTANT):
-            - Treat each section as a completely isolated document.
+            - Treat each resume section as a completely isolated linguistic document.
             - Once a verb, phrase, or action concept appears in one section, it is forbidden in all other sections,
-              even if reworded or changed in tense.
+              even if reworded, paraphrased, or changed in tense.
             - Each section (Summary, Experience, Projects, Skills, SoftSkills, Interests) MUST use a distinct
               vocabulary set and unique action intent.
-            - Repetition across sections is a strict quality failure.
+            - Any repetition across sections is a strict quality failure.
 
             FORMATTING REQUIREMENTS (FOLLOW EXACTLY):
             Each section must start with its label followed by a colon and then the formatted content.
@@ -6299,24 +6301,26 @@ with tab2:
             - SUMMARY:
               Use third-person PRESENT tense ONLY.
               Every bullet MUST begin with a third-person singular verb
-              (e.g., specializes, brings, focuses, leverages).
+              (e.g., specializes, positions, focuses, leverages).
               Do NOT use base verb forms (e.g., specialize, bring, focus).
               Do NOT use past or future tense.
-              Use high-level positioning and strategic language only.
-              Do NOT include implementation or technical execution verbs.
+              Use high-level professional positioning and strategic identity language only.
+              Do NOT include implementation, execution, or tooling verbs.
 
             - EXPERIENCE:
               Use PAST tense ONLY.
-              Use responsibility, ownership, and delivery-oriented language
-              (e.g., led, owned, delivered, coordinated).
+              Use ownership, accountability, delivery, and responsibility-oriented language
+              (e.g., led, governed, executed, resolved, delivered).
+              Emphasize outcomes, scope, and measurable impact.
               Do NOT reuse verbs, phrases, or semantic actions from the Summary.
 
             - PROJECTS:
               Use PAST tense ONLY.
-              Use deep technical build, engineering, and system-design language
+              Use deep technical, engineering, and system-design language
               (e.g., architected, engineered, integrated, optimized, validated).
-              Projects MUST reflect industry-standard, real-world complexity
-              — avoid basic CRUD, toy apps, or generic academic descriptions.
+              Projects MUST reflect industry-standard, real-world complexity.
+              Avoid basic CRUD apps, toy projects, or academic-only descriptions.
+              Emphasize architecture, constraints, scalability, performance, or security.
               Do NOT reuse verbs, phrases, or action ideas from Summary or Experience.
 
             - SKILLS & SOFTSKILLS:
@@ -6325,7 +6329,7 @@ with tab2:
               Do NOT include descriptive or explanatory sentences.
 
             - INTERESTS:
-              Use learning, exploration, contribution, or domain-engagement language.
+              Use professional learning, exploration, contribution, or domain-engagement language.
               Avoid overlap with Skills or Projects.
 
             1. SUMMARY:
@@ -6337,7 +6341,7 @@ with tab2:
                - Company Name (Duration)
                - Role title
                - 3–4 bullets focused on achievements, ownership, and measurable impact
-               - Include tools, metrics, and outcomes where applicable
+               - Include tools, metrics, scale, and outcomes where applicable
 
             3. PROJECTS:
                Present as (A., B., C.) with:
@@ -6346,10 +6350,10 @@ with tab2:
                - Duration: (timeframe)
                - Description:
                  - System or feature engineered
-                 - Technical approach and tooling rationale
+                 - Technical decisions or architectural approach
                  - Performance, scalability, or security improvement with metrics
                  - Complexity handled or constraints solved
-                 - Final measurable outcome or learning
+                 - Final measurable outcome or professional learning
 
             4. SKILLS:
                List 6–8 current, job-relevant technical skills only.
@@ -6466,6 +6470,8 @@ with tab2:
             - Maintain professional, ATS-optimized language.
             - Output ONLY the formatted resume content without explanations.
             """
+
+
 
 
             with st.spinner("🧠 Thinking..."):
