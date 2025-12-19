@@ -6276,16 +6276,18 @@ with tab2:
             LANGUAGE & TONE GUIDELINES:
             - Maintain neutral, inclusive, and professional tone.
             - Avoid biased or gendered terms (e.g., “rockstar,” “guru,” “ninja”).
-            - Use strong, quantifiable, action-oriented verbs, BUT do NOT repeat the same verbs or phrases across different sections.
-            - If a verb or phrase is used in one section, avoid using it again in any other section.
+            - Use strong, quantifiable, action-oriented verbs.
+            - Do NOT repeat the same verbs, verb roots, phrases, or semantic actions across different sections.
             - Focus on measurable impact and role-specific outcomes.
             - Avoid subjective adjectives like "excellent" or "great" — prefer data-driven impact.
 
             CRITICAL PROFESSIONAL WRITING CONSTRAINT (VERY IMPORTANT):
-            - Do NOT repeat action verbs, sentence starters, or key phrases across sections.
-            - Each section (Summary, Experience, Projects, Skills, SoftSkills, Interests) MUST use a distinct vocabulary set.
-            - Avoid common resume verb recycling across sections (e.g., developed, designed, implemented).
-            - Repetition across sections will be treated as a quality failure.
+            - Treat each section as a completely isolated document.
+            - Once a verb, phrase, or action concept appears in one section, it is forbidden in all other sections,
+              even if reworded or changed in tense.
+            - Each section (Summary, Experience, Projects, Skills, SoftSkills, Interests) MUST use a distinct
+              vocabulary set and unique action intent.
+            - Repetition across sections is a strict quality failure.
 
             FORMATTING REQUIREMENTS (FOLLOW EXACTLY):
             Each section must start with its label followed by a colon and then the formatted content.
@@ -6293,86 +6295,120 @@ with tab2:
             SECTION ENHANCEMENT RULES:
 
             SECTION-SPECIFIC LANGUAGE ENFORCEMENT:
+
             - SUMMARY:
-              Use high-level positioning and strategic language (e.g., specialize in, bring expertise in, focused on).
+              Use third-person PRESENT tense ONLY.
+              Every bullet MUST begin with a third-person singular verb
+              (e.g., specializes, brings, focuses, leverages).
+              Do NOT use base verb forms (e.g., specialize, bring, focus).
+              Do NOT use past or future tense.
+              Use high-level positioning and strategic language only.
               Do NOT include implementation or technical execution verbs.
 
             - EXPERIENCE:
-              Use responsibility, ownership, and delivery-oriented language (e.g., led, owned, delivered, coordinated).
-              Do NOT reuse wording from the Summary.
+              Use PAST tense ONLY.
+              Use responsibility, ownership, and delivery-oriented language
+              (e.g., led, owned, delivered, coordinated).
+              Do NOT reuse verbs, phrases, or semantic actions from the Summary.
 
             - PROJECTS:
-              Use technical build and engineering language only (e.g., engineered, architected, integrated, configured).
-              Do NOT reuse verbs or phrases from Summary or Experience.
+              Use PAST tense ONLY.
+              Use deep technical build, engineering, and system-design language
+              (e.g., architected, engineered, integrated, optimized, validated).
+              Projects MUST reflect industry-standard, real-world complexity
+              — avoid basic CRUD, toy apps, or generic academic descriptions.
+              Do NOT reuse verbs, phrases, or action ideas from Summary or Experience.
 
             - SKILLS & SOFTSKILLS:
-              List-only format. Do NOT include descriptive sentences.
+              Nouns only.
+              List-only format.
+              Do NOT include descriptive or explanatory sentences.
 
             - INTERESTS:
-              Use learning, exploration, or contribution-oriented wording.
+              Use learning, exploration, contribution, or domain-engagement language.
+              Avoid overlap with Skills or Projects.
 
-            1. SUMMARY: Write 3–4 bullet points focusing on the candidate’s core expertise, achievements, and industry alignment for "{st.session_state['job_title']}". Include quantifiable outcomes and relevant keywords.
+            1. SUMMARY:
+               Write 3–4 bullet points defining the candidate’s current professional identity,
+               specialization, and measurable strengths for "{st.session_state['job_title']}".
 
-            2. EXPERIENCE: Present entries as (A., B., C.) containing:
+            2. EXPERIENCE:
+               Present entries as (A., B., C.) containing:
                - Company Name (Duration)
-               - Role-specific bullet points focused on achievements and impact
-               - Include metrics, tools used, and measurable improvements where possible
+               - Role title
+               - 3–4 bullets focused on achievements, ownership, and measurable impact
+               - Include tools, metrics, and outcomes where applicable
 
-            3. PROJECTS: Present as (A., B., C.) with:
+            3. PROJECTS:
+               Present as (A., B., C.) with:
                - Project Title
-               - Tech Stack: (only include relevant technologies)
+               - Tech Stack: (only relevant, production-grade technologies)
                - Duration: (timeframe)
-               - Description: 4–5 concise bullet points detailing goals, implementation, challenges, and measurable results
+               - Description:
+                 - System or feature engineered
+                 - Technical approach and tooling rationale
+                 - Performance, scalability, or security improvement with metrics
+                 - Complexity handled or constraints solved
+                 - Final measurable outcome or learning
 
-            4. SKILLS: List 6–8 current and job-relevant technical skills (tools, frameworks, or platforms).
-            5. SOFTSKILLS: List 6–8 professional traits emphasizing collaboration, adaptability, communication, analytical thinking, etc.
-            6. LANGUAGES: Include only spoken or written languages.
-            7. INTERESTS: Include 3–6 professional or domain-related interests.
-            8. CERTIFICATES: Include 3–6 verified, industry-recognized certifications with provider and duration.
+            4. SKILLS:
+               List 6–8 current, job-relevant technical skills only.
+
+            5. SOFTSKILLS:
+               List 6–8 professional traits related to collaboration, ownership,
+               adaptability, communication, and analytical thinking.
+
+            6. LANGUAGES:
+               Include spoken or written languages only.
+
+            7. INTERESTS:
+               Include 3–6 professional or domain-aligned interests.
+
+            8. CERTIFICATES:
+               Include 3–6 verified, industry-recognized certifications with provider and duration.
 
             DOMAIN-SPECIFIC FOCUS:
-            - Technical Roles → Frameworks, programming languages, CI/CD, cloud tools, scalability.
-            - Security Roles → Threat analysis, SIEM tools (Splunk, QRadar), incident response, compliance (ISO 27001, NIST).
-            - Data Roles → Python, SQL, Power BI/Tableau, machine learning, data cleaning, statistics.
-            - Management Roles → Leadership, process improvement, KPIs, performance optimization, strategic execution.
+            - Technical Roles → Frameworks, programming languages, CI/CD, cloud platforms, scalability, security.
+            - Security Roles → Threat modeling, SIEM tools, incident response, compliance frameworks.
+            - Data Roles → Python, SQL, analytics, machine learning, visualization, statistics.
+            - Management Roles → Leadership, KPIs, process optimization, strategic execution.
 
             OUTPUT FORMAT (STRICTLY FOLLOW THIS STRUCTURE):
 
             Summary:
-            • [Achievement-focused bullet point with quantifiable impact]
-            • [Core competency statement with role-specific expertise]
-            • [Professional strength with measurable outcome]
+            • [Third-person present tense, strategic positioning, measurable impact]
+            • [Distinct professional strength with role alignment]
+            • [Unique competency with quantified outcome]
 
             Experience:
             A. [Company Name] ([Duration])
                • [Role Title]
-               • [Specific responsibility with measurable outcome]
-               • [Achievement or project contribution]
-               • [Process improvement or efficiency gain]
+               • [Achievement with metrics]
+               • [Ownership or delivery responsibility]
+               • [Process or performance improvement]
 
             B. [Company Name] ([Duration])
                • [Role Title]
-               • [Specific responsibility with measurable outcome]
-               • [Achievement or project contribution]
+               • [Achievement with measurable outcome]
+               • [Contribution or responsibility]
 
             Projects:
             A. [Project Title]
                • Tech Stack: [Relevant technologies only]
-               • Duration: [Start – End timeframe]
+               • Duration: [Start – End]
                • Description:
-                 - [Implementation or feature developed]
-                 - [Technology used and purpose]
-                 - [Performance or security improvement with metrics]
-                 - [Collaboration or innovation highlight]
-                 - [Measured impact or learning outcome]
+                 - [System or feature engineered]
+                 - [Technical decisions and implementation]
+                 - [Measured improvement or result]
+                 - [Complexity handled or innovation]
 
             B. [Project Title]
                • Tech Stack: [Relevant technologies only]
-               • Duration: [Start – End timeframe]
+               • Duration: [Start – End]
                • Description:
-                 - [Implementation details]
-                 - [Technical challenges addressed]
-                 - [Quantified results or impact]
+                 - [Technical scope]
+                 - [Challenges solved]
+                 - [Quantified results]
                  - [Skills demonstrated]
 
             Skills:
@@ -6393,7 +6429,8 @@ with tab2:
             [Certificate Name] – [Provider] ([Duration/Level])
 
             ENHANCEMENT SOURCE DATA:
-            Transform and enhance the following user inputs while maintaining factual accuracy and logical alignment with "{st.session_state['job_title']}":
+            Enhance the following inputs while maintaining factual accuracy
+            and logical alignment with "{st.session_state['job_title']}":
 
             Summary:
             {st.session_state['summary']}
@@ -6419,17 +6456,17 @@ with tab2:
             Certificates:
             {[cert['name'] for cert in st.session_state['certificate_links'] if cert['name']]}
 
-            ANTI-REPETITION QUALITY CHECK (INTERNAL):
-            - Verify no two sections reuse similar wording or phrases.
-            - No sentence may reuse more than 2 consecutive words from another sentence.
-            - Each section must add new information and perspective.
-            - If repetition is detected, rewrite internally before final output.
+            FINAL QUALITY & DE-DUPLICATION CHECK (MANDATORY):
+            - Ensure verb tense consistency per section.
+            - Ensure zero verb, phrase, or semantic repetition across sections.
+            - If any conflict exists, rewrite the later section entirely before output.
 
             IMPORTANT:
-            - Do NOT fabricate fake companies or experience.
-            - Prioritize the candidate’s strengths while aligning with current industry standards.
-            - Keep the response strictly within the defined format without markdown or explanations.
+            - Do NOT fabricate companies, experience, or certifications.
+            - Maintain professional, ATS-optimized language.
+            - Output ONLY the formatted resume content without explanations.
             """
+
 
             with st.spinner("🧠 Thinking..."):
                 ai_output = call_llm(enhance_prompt, session=st.session_state)
