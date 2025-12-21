@@ -6283,6 +6283,15 @@ with tab2:
             - Focus on measurable impact, scope, and responsibility.
             - Avoid subjective adjectives like "excellent" or "great" — prefer evidence-based outcomes.
 
+            ABSOLUTE PRONOUN & VOICE RESTRICTIONS (NON-NEGOTIABLE):
+            - NEVER use first-person language under any circumstance (I, me, my, we, our).
+            - NEVER use gendered pronouns or possessives
+              (he, she, him, her, his, hers, himself, herself).
+            - NEVER refer to the AI, system, assistant, or writer in the output.
+            - ALL content must be written in third-person, candidate-focused, resume-standard language.
+            - Prefer implicit subject sentences or neutral nouns such as
+              “the candidate”, “the professional”, or role-based references.
+
             CRITICAL PROFESSIONAL WRITING CONSTRAINT (VERY IMPORTANT):
             - Treat each resume section as a completely isolated linguistic document.
             - Once a verb, phrase, or action concept appears in one section, it is forbidden in all other sections,
@@ -6470,7 +6479,6 @@ with tab2:
             - Maintain professional, ATS-optimized language.
             - Output ONLY the formatted resume content without explanations.
             """
-
 
 
 
@@ -6743,7 +6751,6 @@ with tab2:
             <a href="https://www.sejda.com/html-to-pdf" target="_blank" style="color:#2f4f6f; text-decoration:none;">
             convert it to PDF using Sejda's free online tool</a>.
             """, unsafe_allow_html=True)
-
 FEATURED_COMPANIES = {
     "tech": [
         {
