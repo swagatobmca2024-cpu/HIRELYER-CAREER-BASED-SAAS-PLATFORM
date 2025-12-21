@@ -6300,6 +6300,32 @@ with tab2:
               vocabulary set and unique action intent.
             - Any repetition across sections is a strict quality failure.
 
+            GLOBAL ACTION & VERB ISOLATION PROTOCOL (MANDATORY EXECUTION STEP):
+
+            Before generating any resume content, you MUST internally perform the following steps:
+
+            STEP 1 — SECTION VOCABULARY PLANNING (INTERNAL, DO NOT OUTPUT):
+            - Create a private, internal list of verbs and action concepts for EACH section:
+              • Summary_Verb_Set
+              • Experience_Verb_Set
+              • Projects_Verb_Set
+              • Interests_Action_Set
+            - Each list MUST contain only verbs or action concepts unique to that section.
+            - NO verb, verb root, synonym, or semantic action may appear in more than one list.
+
+            STEP 2 — VOCABULARY LOCKING:
+            - Once a verb or action concept is assigned to a section, it becomes permanently locked.
+            - Locked verbs or actions are FORBIDDEN in all other sections, even if paraphrased.
+
+            STEP 3 — ENFORCED GENERATION:
+            - While writing each section, use ONLY the verbs and action concepts from its locked set.
+            - If a conflict is detected, you MUST rewrite the conflicting section completely
+              before producing final output.
+
+            FAILURE CONDITION:
+            - Any repeated verb, verb root, synonym, or semantic action across sections
+              is considered a critical failure and must be corrected before output.
+
             FORMATTING REQUIREMENTS (FOLLOW EXACTLY):
             Each section must start with its label followed by a colon and then the formatted content.
 
@@ -6343,7 +6369,7 @@ with tab2:
 
             1. SUMMARY:
                Write 3–4 bullet points defining the candidate’s current professional identity,
-               specialization, and measurable strengths for "{st.session_state['job_title']}".
+               specialization, and measurable strengths for "{st.session_state['job_title']}". 
 
             2. EXPERIENCE:
                Present entries as (A., B., C.) containing:
@@ -6479,6 +6505,8 @@ with tab2:
             - Maintain professional, ATS-optimized language.
             - Output ONLY the formatted resume content without explanations.
             """
+
+
 
 
 
