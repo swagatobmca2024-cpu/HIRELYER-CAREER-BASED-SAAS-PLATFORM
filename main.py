@@ -10499,7 +10499,7 @@ Generate exactly {num_questions} questions now:
                         st.session_state.resume_questions_answered = 0
 
                         st.success("✅ Resume uploaded and analyzed successfully!")
-                        st.json(resume_context)
+                    
                         time.sleep(1)
                         st.rerun()
                     else:
