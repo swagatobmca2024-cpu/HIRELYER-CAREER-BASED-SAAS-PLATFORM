@@ -8,6 +8,10 @@ numpy
 pillow
 dnspython
 PyPDF2
+pdfplumber
+pytesseract
+pdf2image
+Pillow
 
 matplotlib
 pytz
