@@ -8904,13 +8904,11 @@ def extract_resume_text_from_pdf(pdf_file):
     # ---------- PRIMARY: pdfplumber ----------
     try:
         import pdfplumber
-
         with pdfplumber.open(pdf_file) as pdf:
             for page in pdf.pages:
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text + "\n"
-
         text = text.strip()
     except Exception:
         text = ""
@@ -8923,15 +8921,11 @@ def extract_resume_text_from_pdf(pdf_file):
 
             images = convert_from_bytes(pdf_file.getvalue())
             ocr_text = ""
-
             for img in images:
                 ocr_text += pytesseract.image_to_string(img)
 
-            ocr_text = ocr_text.strip()
-
             if len(ocr_text.split()) > len(text.split()):
-                text = ocr_text
-
+                text = ocr_text.strip()
         except Exception:
             st.warning("OCR fallback failed. Resume may be image-heavy.")
 
@@ -8944,42 +8938,62 @@ def extract_resume_text_from_pdf(pdf_file):
 
 
 # ======================================================
-# RESUME ANALYSIS USING LLM
+# RESUME ANALYSIS USING LLM (IMPROVED PROMPT)
 # ======================================================
 def analyze_resume_with_llm(resume_text):
     """
-    Analyze resume using LLM to extract structured information:
-    - skills, projects, experience, technologies
+    Analyze resume using LLM to extract INTERVIEW-RELEVANT structured information
     """
 
     prompt = f"""
-Analyze the following resume and extract structured information in JSON format.
+You are a senior technical interviewer and resume screening expert.
+
+Analyze the resume below and extract ONLY the most interview-relevant information.
+Focus on technical depth, real-world work, and ownership.
+IGNORE generic soft skills unless strongly implied by technical work.
 
 RESUME TEXT:
 {resume_text}
 
-Extract and return ONLY a JSON object with this exact structure:
+Return ONLY a valid JSON object with this exact structure:
+
 {{
-  "skills": ["skill1", "skill2", "skill3"],
-  "projects": ["project1 - brief description", "project2 - brief description"],
-  "experience": ["role at company - key responsibility"],
-  "technologies": ["tech1", "tech2", "tech3"]
+  "skills": [
+    "Core technical skill clearly demonstrated in projects or experience"
+  ],
+  "projects": [
+    "Project name – what was built, tech used, and key technical challenge solved"
+  ],
+  "experience": [
+    "Role at company – main technical responsibility and impact"
+  ],
+  "technologies": [
+    "Primary technologies actually used (not buzzwords)"
+  ]
 }}
 
-Rules:
-- Extract 5-8 key skills
-- Extract 3-5 notable projects
-- Extract 3-5 work experiences
-- Extract 5-8 technologies/tools
-- Keep descriptions short (1-2 lines)
-- Return ONLY valid JSON
+STRICT RULES:
+- Prefer HARD technical skills over soft skills
+- Extract ONLY skills clearly demonstrated
+- Rank items by importance (most interview-worthy first)
+- Avoid generic terms like 'problem solving', 'communication'
+- Projects MUST mention tech used
+- Experience MUST show ownership or responsibility
+- Extract:
+  - 4–6 skills
+  - 2–4 projects
+  - 2–4 experience entries
+  - 4–6 technologies
+- Keep entries concise but specific
+- Output ONLY JSON (no markdown, no explanations)
+
 JSON:
 """
 
     try:
         response = call_llm(prompt, session=st.session_state).strip()
 
-        # Remove markdown blocks if present
+        # Clean markdown if present
         if response.startswith("```"):
             response = response.split("```")[1]
             if response.lower().startswith("json"):
@@ -8989,18 +9003,18 @@ JSON:
         resume_data = json.loads(response)
 
         return {
-            "skills": resume_data.get("skills", [])[:8],
-            "projects": resume_data.get("projects", [])[:5],
-            "experience": resume_data.get("experience", [])[:5],
-            "technologies": resume_data.get("technologies", [])[:8]
+            "skills": resume_data.get("skills", [])[:6],
+            "projects": resume_data.get("projects", [])[:4],
+            "experience": resume_data.get("experience", [])[:4],
+            "technologies": resume_data.get("technologies", [])[:6]
         }
 
     except Exception:
         st.warning("Resume analysis failed. Using fallback data.")
         return {
-            "skills": ["Problem Solving", "Communication", "Technical Skills"],
-            "projects": ["Personal Projects"],
-            "experience": ["Professional Experience"],
+            "skills": ["Basic Programming Knowledge"],
+            "projects": ["Personal Technical Project"],
+            "experience": ["General Technical Experience"],
             "technologies": ["General Tech Stack"]
         }
 
@@ -9019,7 +9033,9 @@ def generate_resume_based_questions(resume_context, role, domain, difficulty, nu
     technologies = resume_context.get("technologies", [])
 
     prompt = f"""
-Generate EXACTLY {num_questions} interview questions based on the candidate's resume.
+You are a technical interviewer.
+
+Generate EXACTLY {num_questions} interview questions based ONLY on the candidate's resume.
 
 RESUME CONTEXT:
 - Skills: {', '.join(skills[:4])}
@@ -9031,15 +9047,16 @@ Target Role: {role}
 Domain: {domain}
 Difficulty: {difficulty}
 
-Rules:
-- Each question MUST reference resume content
+RULES:
+- Every question MUST reference resume content
+- Ask like a real interviewer
 - Difficulty:
-  - Easy: explanatory
-  - Medium: scenario-based
-  - Hard: deep technical/system design
+  - Easy: explanation & fundamentals
+  - Medium: scenarios & decisions
+  - Hard: deep technical trade-offs or design
 - Output ONLY questions
 - One question per line
-- No numbering or prefixes
+- No numbering, no prefixes
 
 Generate now:
 """
@@ -9057,19 +9074,17 @@ Generate now:
                 break
 
         if len(cleaned_questions) < num_questions:
-            fallback = [
-                f"Explain your experience with {skills[0]} and how it applies to {role}."
-                if skills else f"Explain your technical background for the {role} role."
-            ]
-            cleaned_questions.extend(fallback)
+            cleaned_questions.append(
+                f"Explain your most significant project and the technical decisions you made."
+            )
 
         return cleaned_questions[:num_questions]
 
     except Exception:
         return [
-            f"Tell us about your most significant project and your role in it.",
-            f"How do your skills align with the {role} position?",
-            f"What technical challenges have you handled previously?"
+            "Walk us through your most technically challenging project.",
+            "What design or implementation decisions did you personally make?",
+            "How does your experience prepare you for this role?"
         ]
 
 
@@ -9084,8 +9099,8 @@ def show_resume_scanning_animation():
 
     steps = [
         ("📄 Reading resume...", 0.2),
-        ("🔍 Extracting skills...", 0.4),
-        ("📊 Analyzing experience...", 0.6),
+        ("🔍 Extracting key skills...", 0.4),
+        ("📊 Evaluating experience...", 0.6),
         ("🧠 Understanding projects...", 0.8),
         ("🎯 Preparing interview questions...", 1.0),
     ]
@@ -10499,14 +10514,14 @@ Generate exactly {num_questions} questions now:
                         st.session_state.resume_questions_answered = 0
 
                         st.success("✅ Resume uploaded and analyzed successfully!")
-                    
+                        
                         time.sleep(1)
                         st.rerun()
                     else:
                         st.error("Could not extract text from resume. Please ensure it's a valid PDF.")
         else:
             st.success(f"✅ Resume loaded: {st.session_state.resume_file}")
-            st.json(st.session_state.resume_context)
+            
 
             if st.button("🔄 Upload Different Resume"):
                 st.session_state.resume_file = None
