@@ -8884,102 +8884,142 @@ import threading
 import json
 
 
+import json
+import time
+import re
+import streamlit as st
+
+# ======================================================
+# RESUME TEXT EXTRACTION (pdfplumber + OCR fallback)
+# ======================================================
 def extract_resume_text_from_pdf(pdf_file):
-    """Extract text content from uploaded PDF resume"""
+    """
+    Robust resume extraction:
+    - pdfplumber for text-based & two-column resumes
+    - OCR fallback for scanned/image resumes
+    """
+
+    text = ""
+
+    # ---------- PRIMARY: pdfplumber ----------
     try:
-        import PyPDF2
+        import pdfplumber
 
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        with pdfplumber.open(pdf_file) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+
+        text = text.strip()
+    except Exception:
         text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text()
 
-        return text.strip() if text.strip() else None
-    except Exception as e:
-        st.error(f"Error reading PDF: {e}")
+    # ---------- FALLBACK: OCR ----------
+    if len(text.split()) < 120:
+        try:
+            from pdf2image import convert_from_bytes
+            import pytesseract
+
+            images = convert_from_bytes(pdf_file.getvalue())
+            ocr_text = ""
+
+            for img in images:
+                ocr_text += pytesseract.image_to_string(img)
+
+            ocr_text = ocr_text.strip()
+
+            if len(ocr_text.split()) > len(text.split()):
+                text = ocr_text
+
+        except Exception:
+            st.warning("OCR fallback failed. Resume may be image-heavy.")
+
+    # ---------- FINAL VALIDATION ----------
+    if not text or len(text.split()) < 80:
+        st.warning("Resume text extraction was weak. Some questions may be generic.")
         return None
 
+    return text
 
+
+# ======================================================
+# RESUME ANALYSIS USING LLM
+# ======================================================
 def analyze_resume_with_llm(resume_text):
     """
     Analyze resume using LLM to extract structured information:
-    - skills, projects, experience, tools/technologies
+    - skills, projects, experience, technologies
     """
-    prompt = f"""Analyze the following resume and extract structured information in JSON format.
+
+    prompt = f"""
+Analyze the following resume and extract structured information in JSON format.
 
 RESUME TEXT:
 {resume_text}
 
 Extract and return ONLY a JSON object with this exact structure:
 {{
-  "skills": ["skill1", "skill2", "skill3", ...],
-  "projects": ["project1 - brief description", "project2 - brief description", ...],
-  "experience": ["role1 at company1 - key responsibility", "role2 at company2 - key responsibility", ...],
-  "technologies": ["tech1", "tech2", "tech3", ...]
+  "skills": ["skill1", "skill2", "skill3"],
+  "projects": ["project1 - brief description", "project2 - brief description"],
+  "experience": ["role at company - key responsibility"],
+  "technologies": ["tech1", "tech2", "tech3"]
 }}
 
 Rules:
 - Extract 5-8 key skills
 - Extract 3-5 notable projects
 - Extract 3-5 work experiences
-- Extract 5-8 technologies/tools mentioned
-- Keep descriptions brief (1-2 sentences max)
-- Return ONLY valid JSON, no other text
-
-JSON:"""
+- Extract 5-8 technologies/tools
+- Keep descriptions short (1-2 lines)
+- Return ONLY valid JSON
+JSON:
+"""
 
     try:
         response = call_llm(prompt, session=st.session_state).strip()
 
-        # Clean response - remove markdown code blocks if present
+        # Remove markdown blocks if present
         if response.startswith("```"):
             response = response.split("```")[1]
-            if response.startswith("json"):
+            if response.lower().startswith("json"):
                 response = response[4:]
             response = response.strip()
 
-        # Parse JSON
         resume_data = json.loads(response)
 
-        # Validate and clean data
-        resume_data = {
+        return {
             "skills": resume_data.get("skills", [])[:8],
             "projects": resume_data.get("projects", [])[:5],
             "experience": resume_data.get("experience", [])[:5],
             "technologies": resume_data.get("technologies", [])[:8]
         }
 
-        return resume_data
-    except json.JSONDecodeError:
-        st.warning("Could not parse resume analysis. Using fallback data.")
+    except Exception:
+        st.warning("Resume analysis failed. Using fallback data.")
         return {
-            "skills": ["Communication", "Problem Solving", "Technical Skills"],
-            "projects": ["Personal Projects"],
-            "experience": ["Professional Experience"],
-            "technologies": ["General Tech Stack"]
-        }
-    except Exception as e:
-        st.warning(f"Resume analysis error: {e}")
-        return {
-            "skills": ["Communication", "Problem Solving", "Technical Skills"],
+            "skills": ["Problem Solving", "Communication", "Technical Skills"],
             "projects": ["Personal Projects"],
             "experience": ["Professional Experience"],
             "technologies": ["General Tech Stack"]
         }
 
 
+# ======================================================
+# RESUME-BASED QUESTION GENERATION
+# ======================================================
 def generate_resume_based_questions(resume_context, role, domain, difficulty, num_questions=3):
     """
-    Generate interview questions based on resume context.
-    Questions reference specific skills, projects, and experiences.
+    Generate interview questions strictly based on resume context
     """
+
     skills = resume_context.get("skills", [])
     projects = resume_context.get("projects", [])
     experience = resume_context.get("experience", [])
     technologies = resume_context.get("technologies", [])
 
-    # Build prompt with resume context
-    prompt = f"""Generate EXACTLY {num_questions} interview questions based on this candidate's resume.
+    prompt = f"""
+Generate EXACTLY {num_questions} interview questions based on the candidate's resume.
 
 RESUME CONTEXT:
 - Skills: {', '.join(skills[:4])}
@@ -8991,80 +9031,76 @@ Target Role: {role}
 Domain: {domain}
 Difficulty: {difficulty}
 
-REQUIREMENTS:
-- Each question MUST reference a specific skill, project, or experience from the resume
-- Questions should be tailored to {role} role
-- Difficulty level {difficulty}: {"Beginner-friendly, explanatory" if difficulty == "Easy" else "Scenario-based, intermediate" if difficulty == "Medium" else "Deep technical, system design focused"}
-- Generate EXACTLY {num_questions} questions
-- Output ONLY questions, one per line
-- NO numbering, bullet points, or prefixes
-- NO introductory text
+Rules:
+- Each question MUST reference resume content
+- Difficulty:
+  - Easy: explanatory
+  - Medium: scenario-based
+  - Hard: deep technical/system design
+- Output ONLY questions
+- One question per line
+- No numbering or prefixes
 
-Example good questions:
-You mentioned experience with React in your resume, how would you explain your React architecture to a {role}?
-Tell us about your {projects[0] if projects else 'notable project'} - what was the most challenging part?
-Your resume lists {skills[0] if skills else 'technical skill'} as a strength, how would you apply this in a {role} role?
-
-Generate exactly {num_questions} questions now:"""
+Generate now:
+"""
 
     try:
         response = call_llm(prompt, session=st.session_state)
+        raw_questions = [q.strip() for q in response.split("\n") if q.strip()]
 
-        # Split and clean questions
-        raw_questions = [q.strip() for q in response.split('\n') if q.strip()]
-
-        import re
         cleaned_questions = []
         for q in raw_questions:
-            # Remove prefixes
-            clean_q = re.sub(r'^[\d\)\.\-•\*]+\s*', '', q).strip()
-            clean_q = re.sub(r'^Question\s*\d*\s*:?\s*', '', clean_q, flags=re.IGNORECASE).strip()
-
-            if clean_q and len(clean_q) > 15:
-                cleaned_questions.append(clean_q)
-
+            q = re.sub(r'^[\d\)\.\-•\*]+\s*', '', q).strip()
+            if len(q) > 15:
+                cleaned_questions.append(q)
             if len(cleaned_questions) >= num_questions:
                 break
 
-        # Fallback if not enough questions
         if len(cleaned_questions) < num_questions:
             fallback = [
-                f"Tell us about your experience with {skills[0] if skills else 'technical skills'} and how it applies to {role}.",
-                f"Describe your {projects[0] if projects else 'most significant project'} and the challenges you faced.",
-                f"How would you use your {technologies[0] if technologies else 'technical expertise'} in a {role} position?"
+                f"Explain your experience with {skills[0]} and how it applies to {role}."
+                if skills else f"Explain your technical background for the {role} role."
             ]
-            cleaned_questions.extend(fallback[:num_questions - len(cleaned_questions)])
+            cleaned_questions.extend(fallback)
 
         return cleaned_questions[:num_questions]
-    except Exception as e:
-        # Fallback questions
+
+    except Exception:
         return [
-            f"Can you walk us through your {projects[0] if projects else 'notable project'} and your specific contributions?",
-            f"How have you applied {skills[0] if skills else 'your technical skills'} in your previous roles?",
-            f"What interests you about the {role} position based on your background?"
+            f"Tell us about your most significant project and your role in it.",
+            f"How do your skills align with the {role} position?",
+            f"What technical challenges have you handled previously?"
         ]
 
 
+# ======================================================
+# RESUME SCANNING ANIMATION
+# ======================================================
 def show_resume_scanning_animation():
-    """Display animated resume scanning sequence"""
-    status_container = st.empty()
-    progress_bar = st.empty()
+    """Animated resume scanning UI"""
+
+    status = st.empty()
+    progress = st.empty()
 
     steps = [
-        ("📖 Reading resume...", 0.2),
+        ("📄 Reading resume...", 0.2),
         ("🔍 Extracting skills...", 0.4),
-        ("📋 Analyzing projects & experience...", 0.6),
-        ("🎯 Identifying key technologies...", 0.8),
-        ("✨ Preparing personalized questions...", 1.0)
+        ("📊 Analyzing experience...", 0.6),
+        ("🧠 Understanding projects...", 0.8),
+        ("🎯 Preparing interview questions...", 1.0),
     ]
 
-    for step_text, progress in steps:
-        status_container.markdown(f"<h4 style='color: #00c3ff; text-align: center;'>{step_text}</h4>", unsafe_allow_html=True)
-        progress_bar.progress(progress)
+    for text, value in steps:
+        status.markdown(
+            f"<h4 style='text-align:center;color:#00c3ff'>{text}</h4>",
+            unsafe_allow_html=True
+        )
+        progress.progress(value)
         time.sleep(0.6)
 
-    status_container.empty()
-    progress_bar.empty()
+    status.empty()
+    progress.empty()
+
 
 with tab4:
     # Inject CSS styles (keeping existing styles)
