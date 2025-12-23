@@ -8881,190 +8881,6 @@ from courses import COURSES_BY_CATEGORY, RESUME_VIDEOS, INTERVIEW_VIDEOS, get_co
 from llm_manager import call_llm
 import time
 import threading
-import json
-
-
-def extract_resume_text_from_pdf(pdf_file):
-    """Extract text content from uploaded PDF resume"""
-    try:
-        import PyPDF2
-
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text()
-
-        return text.strip() if text.strip() else None
-    except Exception as e:
-        st.error(f"Error reading PDF: {e}")
-        return None
-
-
-def analyze_resume_with_llm(resume_text):
-    """
-    Analyze resume using LLM to extract structured information:
-    - skills, projects, experience, tools/technologies
-    """
-    prompt = f"""Analyze the following resume and extract structured information in JSON format.
-
-RESUME TEXT:
-{resume_text}
-
-Extract and return ONLY a JSON object with this exact structure:
-{{
-  "skills": ["skill1", "skill2", "skill3", ...],
-  "projects": ["project1 - brief description", "project2 - brief description", ...],
-  "experience": ["role1 at company1 - key responsibility", "role2 at company2 - key responsibility", ...],
-  "technologies": ["tech1", "tech2", "tech3", ...]
-}}
-
-Rules:
-- Extract 5-8 key skills
-- Extract 3-5 notable projects
-- Extract 3-5 work experiences
-- Extract 5-8 technologies/tools mentioned
-- Keep descriptions brief (1-2 sentences max)
-- Return ONLY valid JSON, no other text
-
-JSON:"""
-
-    try:
-        response = call_llm(prompt, session=st.session_state).strip()
-
-        # Clean response - remove markdown code blocks if present
-        if response.startswith("```"):
-            response = response.split("```")[1]
-            if response.startswith("json"):
-                response = response[4:]
-            response = response.strip()
-
-        # Parse JSON
-        resume_data = json.loads(response)
-
-        # Validate and clean data
-        resume_data = {
-            "skills": resume_data.get("skills", [])[:8],
-            "projects": resume_data.get("projects", [])[:5],
-            "experience": resume_data.get("experience", [])[:5],
-            "technologies": resume_data.get("technologies", [])[:8]
-        }
-
-        return resume_data
-    except json.JSONDecodeError:
-        st.warning("Could not parse resume analysis. Using fallback data.")
-        return {
-            "skills": ["Communication", "Problem Solving", "Technical Skills"],
-            "projects": ["Personal Projects"],
-            "experience": ["Professional Experience"],
-            "technologies": ["General Tech Stack"]
-        }
-    except Exception as e:
-        st.warning(f"Resume analysis error: {e}")
-        return {
-            "skills": ["Communication", "Problem Solving", "Technical Skills"],
-            "projects": ["Personal Projects"],
-            "experience": ["Professional Experience"],
-            "technologies": ["General Tech Stack"]
-        }
-
-
-def generate_resume_based_questions(resume_context, role, domain, difficulty, num_questions=3):
-    """
-    Generate interview questions based on resume context.
-    Questions reference specific skills, projects, and experiences.
-    """
-    skills = resume_context.get("skills", [])
-    projects = resume_context.get("projects", [])
-    experience = resume_context.get("experience", [])
-    technologies = resume_context.get("technologies", [])
-
-    # Build prompt with resume context
-    prompt = f"""Generate EXACTLY {num_questions} interview questions based on this candidate's resume.
-
-RESUME CONTEXT:
-- Skills: {', '.join(skills[:4])}
-- Projects: {', '.join(projects[:2])}
-- Experience: {', '.join(experience[:2])}
-- Technologies: {', '.join(technologies[:4])}
-
-Target Role: {role}
-Domain: {domain}
-Difficulty: {difficulty}
-
-REQUIREMENTS:
-- Each question MUST reference a specific skill, project, or experience from the resume
-- Questions should be tailored to {role} role
-- Difficulty level {difficulty}: {"Beginner-friendly, explanatory" if difficulty == "Easy" else "Scenario-based, intermediate" if difficulty == "Medium" else "Deep technical, system design focused"}
-- Generate EXACTLY {num_questions} questions
-- Output ONLY questions, one per line
-- NO numbering, bullet points, or prefixes
-- NO introductory text
-
-Example good questions:
-You mentioned experience with React in your resume, how would you explain your React architecture to a {role}?
-Tell us about your {projects[0] if projects else 'notable project'} - what was the most challenging part?
-Your resume lists {skills[0] if skills else 'technical skill'} as a strength, how would you apply this in a {role} role?
-
-Generate exactly {num_questions} questions now:"""
-
-    try:
-        response = call_llm(prompt, session=st.session_state)
-
-        # Split and clean questions
-        raw_questions = [q.strip() for q in response.split('\n') if q.strip()]
-
-        import re
-        cleaned_questions = []
-        for q in raw_questions:
-            # Remove prefixes
-            clean_q = re.sub(r'^[\d\)\.\-•\*]+\s*', '', q).strip()
-            clean_q = re.sub(r'^Question\s*\d*\s*:?\s*', '', clean_q, flags=re.IGNORECASE).strip()
-
-            if clean_q and len(clean_q) > 15:
-                cleaned_questions.append(clean_q)
-
-            if len(cleaned_questions) >= num_questions:
-                break
-
-        # Fallback if not enough questions
-        if len(cleaned_questions) < num_questions:
-            fallback = [
-                f"Tell us about your experience with {skills[0] if skills else 'technical skills'} and how it applies to {role}.",
-                f"Describe your {projects[0] if projects else 'most significant project'} and the challenges you faced.",
-                f"How would you use your {technologies[0] if technologies else 'technical expertise'} in a {role} position?"
-            ]
-            cleaned_questions.extend(fallback[:num_questions - len(cleaned_questions)])
-
-        return cleaned_questions[:num_questions]
-    except Exception as e:
-        # Fallback questions
-        return [
-            f"Can you walk us through your {projects[0] if projects else 'notable project'} and your specific contributions?",
-            f"How have you applied {skills[0] if skills else 'your technical skills'} in your previous roles?",
-            f"What interests you about the {role} position based on your background?"
-        ]
-
-
-def show_resume_scanning_animation():
-    """Display animated resume scanning sequence"""
-    status_container = st.empty()
-    progress_bar = st.empty()
-
-    steps = [
-        ("📖 Reading resume...", 0.2),
-        ("🔍 Extracting skills...", 0.4),
-        ("📋 Analyzing projects & experience...", 0.6),
-        ("🎯 Identifying key technologies...", 0.8),
-        ("✨ Preparing personalized questions...", 1.0)
-    ]
-
-    for step_text, progress in steps:
-        status_container.markdown(f"<h4 style='color: #00c3ff; text-align: center;'>{step_text}</h4>", unsafe_allow_html=True)
-        progress_bar.progress(progress)
-        time.sleep(0.6)
-
-    status_container.empty()
-    progress_bar.empty()
 
 with tab4:
     # Inject CSS styles (keeping existing styles)
@@ -10417,99 +10233,37 @@ Generate exactly {num_questions} questions now:
                     st.markdown(f"**{title}**")
                     st.video(url)
 
-    # Section 4: UPDATED AI Interview Coach 🤖 with Resume-Based Interviewing
+    # Section 4: UPDATED AI Interview Coach 🤖 with Mock Interview and Enhanced Features
     elif page == "AI Interview Coach 🤖":
         st.subheader("🤖 AI Interview Coach")
-        st.markdown("Upload your resume and practice role-specific interview questions with AI-powered feedback!")
+        st.markdown("Practice role-specific interview questions with our AI coach. Get instant feedback on your answers and discover recommended courses!")
 
         # Create database table if not exists
         create_interview_database()
 
-        # Initialize resume state
-        if 'resume_file' not in st.session_state:
-            st.session_state.resume_file = None
-        if 'resume_context' not in st.session_state:
-            st.session_state.resume_context = None
-        if 'interview_phase' not in st.session_state:
-            st.session_state.interview_phase = "resume"
-        if 'resume_questions_answered' not in st.session_state:
-            st.session_state.resume_questions_answered = 0
+        # Domain and Role selection
+        st.markdown('<div class="role-selector">', unsafe_allow_html=True)
 
-        # RESUME UPLOAD SECTION (MANDATORY)
-        st.markdown("---")
-        st.markdown("<h3 style='color: #00c3ff;'>📄 Step 1: Upload Your Resume</h3>", unsafe_allow_html=True)
-
-        if st.session_state.resume_file is None:
-            uploaded_resume = st.file_uploader(
-                "Upload your resume (PDF format)",
-                type=['pdf'],
-                key="resume_uploader"
+        col1, col2 = st.columns(2)
+        with col1:
+            selected_domain = st.selectbox(
+                "Select Career Domain",
+                options=list(COURSES_BY_CATEGORY.keys()),
+                key="interview_domain_selection"
             )
 
-            if uploaded_resume:
-                with st.spinner("Processing your resume..."):
-                    # Extract text from PDF
-                    resume_text = extract_resume_text_from_pdf(uploaded_resume)
-
-                    if resume_text and len(resume_text.strip()) > 50:
-                        # Analyze resume
-                        with st.spinner("Analyzing your resume with AI..."):
-                            resume_context = analyze_resume_with_llm(resume_text)
-
-                        # Store in session
-                        st.session_state.resume_file = uploaded_resume.name
-                        st.session_state.resume_context = resume_context
-                        st.session_state.interview_phase = "resume"
-                        st.session_state.resume_questions_answered = 0
-
-                        st.success("✅ Resume uploaded and analyzed successfully!")
-                        st.json(resume_context)
-                        time.sleep(1)
-                        st.rerun()
-                    else:
-                        st.error("Could not extract text from resume. Please ensure it's a valid PDF.")
-        else:
-            st.success(f"✅ Resume loaded: {st.session_state.resume_file}")
-            st.json(st.session_state.resume_context)
-
-            if st.button("🔄 Upload Different Resume"):
-                st.session_state.resume_file = None
-                st.session_state.resume_context = None
-                st.session_state.dynamic_interview_started = False
-                st.session_state.dynamic_interview_completed = False
-                st.rerun()
-
-        # Only show domain/role selection if resume is uploaded
-        if st.session_state.resume_file is not None:
-            st.markdown("---")
-            st.markdown("<h3 style='color: #00c3ff;'>👔 Step 2: Select Target Role</h3>", unsafe_allow_html=True)
-
-            # Domain and Role selection
-            st.markdown('<div class="role-selector">', unsafe_allow_html=True)
-
-            col1, col2 = st.columns(2)
-            with col1:
-                selected_domain = st.selectbox(
-                    "Select Career Domain",
-                    options=list(COURSES_BY_CATEGORY.keys()),
-                    key="interview_domain_selection"
+        with col2:
+            if selected_domain:
+                roles = list(COURSES_BY_CATEGORY[selected_domain].keys())
+                selected_role = st.selectbox(
+                    "Select Target Role",
+                    options=roles,
+                    key="interview_role_selection"
                 )
+            else:
+                selected_role = None
 
-            with col2:
-                if selected_domain:
-                    roles = list(COURSES_BY_CATEGORY[selected_domain].keys())
-                    selected_role = st.selectbox(
-                        "Select Target Role",
-                        options=roles,
-                        key="interview_role_selection"
-                    )
-                else:
-                    selected_role = None
-
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            selected_domain = None
-            selected_role = None
+        st.markdown('</div>', unsafe_allow_html=True)
         
         if selected_domain and selected_role:
             # Initialize interview state
@@ -10544,10 +10298,6 @@ Generate exactly {num_questions} questions now:
                 st.session_state.interview_difficulty = "Medium"
             if 'original_num_questions' not in st.session_state:
                 st.session_state.original_num_questions = 6
-            if 'resume_based_questions' not in st.session_state:
-                st.session_state.resume_based_questions = []
-            if 'generic_questions' not in st.session_state:
-                st.session_state.generic_questions = []
 
             # Start interview setup
             if not st.session_state.dynamic_interview_started:
@@ -10580,40 +10330,21 @@ Generate exactly {num_questions} questions now:
 
                 if st.button("🚀 Start Mock Interview"):
                     with st.spinner("Generating personalized questions using AI..."):
-                        # Generate resume-based questions
-                        resume_based_qs = []
-                        if st.session_state.resume_context:
-                            with st.spinner("Creating resume-based questions..."):
-                                resume_based_qs = generate_resume_based_questions(
-                                    st.session_state.resume_context,
-                                    selected_role,
-                                    selected_domain,
-                                    interview_difficulty,
-                                    num_questions=2
-                                )
+                        # FIXED: Pass difficulty to question generation
+                        selected_questions = generate_interview_questions_with_llm(
+                            selected_domain,
+                            selected_role,
+                            interview_type,
+                            num_questions,
+                            interview_difficulty  # Now passing difficulty
+                        )
 
-                        # Generate generic questions
-                        generic_qs = []
-                        remaining_questions = num_questions - len(resume_based_qs)
-                        if remaining_questions > 0:
-                            with st.spinner("Creating generic interview questions..."):
-                                generic_qs = generate_interview_questions_with_llm(
-                                    selected_domain,
-                                    selected_role,
-                                    interview_type,
-                                    remaining_questions,
-                                    interview_difficulty
-                                )
+                        if selected_questions:
+                            # FIXED: Reset ALL interview state variables properly
+                            # EXACT QUESTION COUNT: Enforce exact number of questions
+                            selected_questions = selected_questions[:num_questions]
 
-                        # Combine all questions: resume-based first, then generic
-                        all_questions = resume_based_qs + generic_qs
-                        all_questions = all_questions[:num_questions]
-
-                        if all_questions:
-                            # Reset ALL interview state variables properly
-                            st.session_state.dynamic_interview_questions = all_questions
-                            st.session_state.resume_based_questions = resume_based_qs
-                            st.session_state.generic_questions = generic_qs
+                            st.session_state.dynamic_interview_questions = selected_questions
                             st.session_state.original_num_questions = num_questions
                             st.session_state.current_dynamic_interview_question = 0
                             st.session_state.dynamic_interview_answers = []
@@ -10622,17 +10353,10 @@ Generate exactly {num_questions} questions now:
                             st.session_state.dynamic_interview_completed = False
                             st.session_state.dynamic_interview_started = True
                             st.session_state.dynamic_answer_submitted = False
-                            st.session_state.current_interview_question_text = all_questions[0]
+                            st.session_state.current_interview_question_text = selected_questions[0]
                             st.session_state.question_timer_start = time.time()
                             st.session_state.timer_seconds = timer_seconds
                             st.session_state.interview_difficulty = interview_difficulty
-                            st.session_state.interview_phase = "resume" if resume_based_qs else "generic"
-
-                            # Show resume scanning animation if resume questions exist
-                            if resume_based_qs:
-                                st.info("🎯 Starting with resume-based questions...")
-                                show_resume_scanning_animation()
-
                             st.success("Questions generated! Starting your mock interview...")
                             time.sleep(1)
                             st.rerun()
@@ -10646,10 +10370,6 @@ Generate exactly {num_questions} questions now:
                 total_questions = len(st.session_state.dynamic_interview_questions)
                 current_index = st.session_state.current_dynamic_interview_question + 1
 
-                # Determine current phase
-                num_resume_qs = len(st.session_state.resume_based_questions)
-                current_phase = "Resume-Based" if current_index <= num_resume_qs else "Generic Interview"
-
                 # Display progress with correct counts in glassmorphism box
                 st.markdown(f"""
                 <div style="background: linear-gradient(135deg, rgba(0, 195, 255, 0.08) 0%, rgba(0, 195, 255, 0.04) 100%);
@@ -10661,7 +10381,7 @@ Generate exactly {num_questions} questions now:
                             margin: 20px 0;
                             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);">
                     <p style="color: #ffffff; font-size: 16px; margin: 0; font-weight: 500;">
-                        📊 Progress: Answered {questions_answered}/{st.session_state.original_num_questions} questions | Phase: {current_phase}
+                        📊 Progress: Answered {questions_answered}/{st.session_state.original_num_questions} questions | Current Index: {current_index} of {st.session_state.original_num_questions}
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -10694,14 +10414,10 @@ Generate exactly {num_questions} questions now:
                     progress_value = (st.session_state.timer_seconds - remaining_time) / st.session_state.timer_seconds
                     st.progress(progress_value)
 
-                    # Question display with phase indicator
-                    phase_badge = "📄 Resume-Based Question" if current_index <= num_resume_qs else "💼 Generic Interview Question"
+                    # Question display
                     st.markdown(f"""
                     <div class="quiz-card">
                         <h3 style="color: #00c3ff;">Question {questions_answered + 1} of {st.session_state.original_num_questions}</h3>
-                        <div style="background: rgba(0, 195, 255, 0.15); padding: 8px 12px; border-radius: 6px; margin: 10px 0; display: inline-block;">
-                            <span style="color: #00c3ff; font-weight: 600;">{phase_badge}</span>
-                        </div>
                         <h4 style="color: #ffffff; margin: 15px 0;">Role: {selected_role} | Difficulty: {st.session_state.interview_difficulty}</h4>
                         <p style="font-size: 18px; color: #ffffff; margin: 15px 0;">{question}</p>
                     </div>
@@ -11094,9 +10810,6 @@ Generate exactly {num_questions} questions now:
                     st.session_state.timer_seconds = 120
                     st.session_state.interview_difficulty = "Medium"
                     st.session_state.original_num_questions = 6
-                    st.session_state.resume_based_questions = []
-                    st.session_state.generic_questions = []
-                    st.session_state.interview_phase = "resume"
                     st.rerun()
         else:
             st.info("Please select both a career domain and target role to start the interview practice.")
