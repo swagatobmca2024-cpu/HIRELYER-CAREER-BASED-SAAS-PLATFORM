@@ -8446,7 +8446,7 @@ def evaluate_interview_answer(answer: str, question: str = None):
     return score, feedback
 
 
-def evaluate_interview_answer_for_scores(answer: str, question: str, difficulty: str, role: str = "", domain: str = ""):
+def evaluate_interview_answer_for_scores(answer: str, question: str, difficulty: str, role: str = "", domain: str = "", is_resume_based: bool = False, resume_context: dict = None):
     """
     UPGRADED: Intelligent evaluation with chain-of-thought reasoning and structured feedback.
     Uses JSON-based parsing for robustness and provides detailed, actionable feedback.
@@ -8457,6 +8457,7 @@ def evaluate_interview_answer_for_scores(answer: str, question: str, difficulty:
     - Chain-of-thought evaluation: extracts key concepts, identifies strengths/gaps
     - Structured feedback: detailed paragraph with specific, actionable insights
     - Difficulty calibration: Easy (encouraging), Medium (balanced), Hard (strict)
+    - Question-type aware follow-ups: resume-based follow-ups stay on same skill/project
     - JSON-based parsing for reliability
     """
     from llm_manager import call_llm
@@ -8523,12 +8524,46 @@ def evaluate_interview_answer_for_scores(answer: str, question: str, difficulty:
     # Build context for relevance checking
     context_info = f" for {role} in {domain}" if role and domain else ""
 
+    # Build follow-up instructions based on question type
+    followup_instructions = ""
+    if difficulty == "Hard":
+        if is_resume_based and resume_context:
+            skills = resume_context.get("skills", [])
+            projects = resume_context.get("projects", [])
+            followup_instructions = f"""
+STEP 5 - GENERATE RESUME-BASED FOLLOW-UP:
+Generate ONE follow-up question that:
+- Stays on the SAME skill/technology mentioned in the original question
+- References the SAME project/experience from the original question
+- Digs deeper into what they said in their answer
+- Asks as if you read their resume (use phrases like "I see..." or "Your resume mentions...")
+- Sounds natural and conversational
+
+Available resume context:
+Skills: {', '.join(skills[:4])}
+Projects: {'; '.join(projects[:2])}
+
+Example follow-up: "You mentioned [specific detail from their answer]. In that same project, how did you handle [deeper aspect]?"
+"""
+        else:
+            followup_instructions = f"""
+STEP 5 - GENERATE GENERIC FOLLOW-UP:
+Generate ONE follow-up question that:
+- Is GENERIC and role/domain-based (NO resume references)
+- Digs deeper based on what they said in their answer
+- Explores edge cases, trade-offs, or alternative approaches
+- Stays relevant to {role} in {domain}
+
+Example follow-up: "You mentioned [concept]. How would you handle [edge case or alternative scenario]?"
+"""
+
     # UPGRADED CHAIN-OF-THOUGHT EVALUATION PROMPT
     prompt = f"""You are an expert technical interviewer evaluating a candidate's answer{context_info}.
 
 QUESTION: {question}
 CANDIDATE'S ANSWER: {answer}
 DIFFICULTY LEVEL: {difficulty}
+QUESTION TYPE: {"Resume-based (references candidate's specific experience)" if is_resume_based else "Generic (role/domain-based)"}
 
 EVALUATION APPROACH ({guidance['tone']}):
 Expected: {guidance['expectations']}
@@ -8557,8 +8592,7 @@ Provide detailed, flowing feedback that covers:
 - Overall assessment: A brief summary of their understanding level
 
 Write feedback as natural, flowing paragraphs (not bullet points). Make it detailed, specific to their answer, and constructive.
-
-{"STEP 5 - FOLLOW-UP QUESTION: Generate ONE probing follow-up question that digs deeper based on their answer." if difficulty == "Hard" else ""}
+{followup_instructions}
 
 OUTPUT FORMAT (strict JSON):
 {{
@@ -8568,7 +8602,7 @@ OUTPUT FORMAT (strict JSON):
   "knowledge": <number 1-10>,
   "communication": <number 1-10>,
   "relevance": <number 1-10>,
-  "feedback": "Detailed, comprehensive feedback in 2-4 flowing paragraphs. Be specific about what the candidate did well, what they missed, and how they can improve. Reference actual content from their answer. Make it constructive, actionable, and personalized."{',\n  "followup": "One probing follow-up question"' if difficulty == "Hard" else ''}
+  "feedback": "Detailed, comprehensive feedback in 2-4 flowing paragraphs. Be specific about what the candidate did well, what they missed, and how they can improve. Reference actual content from their answer. Make it constructive, actionable, and personalized."{',\n  "followup": "One probing follow-up question matching the question type"' if difficulty == "Hard" else ''}
 }}
 
 IMPORTANT RULES:
@@ -8577,6 +8611,7 @@ IMPORTANT RULES:
 - Feedback must be specific to THIS answer, not generic templates
 - Reference actual content from the candidate's answer in feedback
 - Each feedback point should feel personalized and human
+{"- Follow-up MUST match question type: resume-based stays on same skill/project, generic stays role-based" if difficulty == "Hard" else ""}
 
 Provide ONLY the JSON output, no additional text."""
 
@@ -9024,7 +9059,8 @@ JSON:
 # ======================================================
 def generate_resume_based_questions(resume_context, role, domain, difficulty, num_questions=3):
     """
-    Generate interview questions strictly based on resume context
+    Generate interview questions strictly based on resume context.
+    Each question MUST reference ONE specific skill AND a resume experience/project.
     """
 
     skills = resume_context.get("skills", [])
@@ -9032,33 +9068,50 @@ def generate_resume_based_questions(resume_context, role, domain, difficulty, nu
     experience = resume_context.get("experience", [])
     technologies = resume_context.get("technologies", [])
 
-    prompt = f"""
-You are a technical interviewer.
+    difficulty_guidance = {
+        "Easy": "Ask about FUNDAMENTALS and BASIC UNDERSTANDING. Questions should test basic concepts, definitions, or simple explanations of what they did.",
+        "Medium": "Ask about APPLIED USAGE and PRACTICAL SCENARIOS. Questions should explore how they used the skill, decisions they made, or challenges they solved.",
+        "Hard": "Ask about EDGE CASES, TRADE-OFFS, and ARCHITECTURE. Questions should probe deep technical decisions, alternatives considered, scalability, or system design aspects."
+    }
 
-Generate EXACTLY {num_questions} interview questions based ONLY on the candidate's resume.
+    prompt = f"""
+You are a technical interviewer who has READ the candidate's resume carefully.
+
+Generate EXACTLY {num_questions} interview questions that reference SPECIFIC details from their resume.
 
 RESUME CONTEXT:
-- Skills: {', '.join(skills[:4])}
-- Projects: {', '.join(projects[:2])}
-- Experience: {', '.join(experience[:2])}
-- Technologies: {', '.join(technologies[:4])}
+Skills: {', '.join(skills[:6])}
+Projects: {'; '.join(projects[:3])}
+Experience: {'; '.join(experience[:3])}
+Technologies: {', '.join(technologies[:6])}
 
 Target Role: {role}
 Domain: {domain}
 Difficulty: {difficulty}
 
-RULES:
-- Every question MUST reference resume content
-- Ask like a real interviewer
-- Difficulty:
-  - Easy: explanation & fundamentals
-  - Medium: scenarios & decisions
-  - Hard: deep technical trade-offs or design
-- Output ONLY questions
-- One question per line
-- No numbering, no prefixes
+DIFFICULTY GUIDANCE:
+{difficulty_guidance.get(difficulty, difficulty_guidance["Medium"])}
 
-Generate now:
+CRITICAL REQUIREMENTS - EVERY QUESTION MUST:
+1. Reference ONE specific skill from the resume (e.g., "Python", "React", "AWS")
+2. Reference a project or experience from the resume (e.g., "I see you worked on...")
+3. Ask as if you've read their resume and are following up
+4. Sound natural, like a real interviewer who is genuinely curious
+
+QUESTION FORMAT EXAMPLES:
+- "I see you used [SKILL] in [PROJECT]. Can you explain [specific technical aspect]?"
+- "Your resume mentions [EXPERIENCE] involving [SKILL]. How did you handle [scenario]?"
+- "In [PROJECT], you worked with [SKILL]. What [technical decision/challenge] did you face?"
+
+RULES:
+- EACH question must mention BOTH a skill AND a project/experience
+- Vary which skills and projects you reference across questions
+- Match the difficulty level specified above
+- Output ONLY questions, one per line
+- No numbering, bullets, or prefixes
+- Questions should be 1-2 sentences maximum
+
+Generate exactly {num_questions} resume-based questions now:
 """
 
     try:
@@ -9068,24 +9121,27 @@ Generate now:
         cleaned_questions = []
         for q in raw_questions:
             q = re.sub(r'^[\d\)\.\-•\*]+\s*', '', q).strip()
-            if len(q) > 15:
+            if len(q) > 20 and ('?' in q):
                 cleaned_questions.append(q)
             if len(cleaned_questions) >= num_questions:
                 break
 
         if len(cleaned_questions) < num_questions:
             cleaned_questions.append(
-                f"Explain your most significant project and the technical decisions you made."
+                f"I see you have experience with {skills[0] if skills else 'various technologies'}. Can you walk me through a specific challenge you faced and how you solved it?"
             )
 
         return cleaned_questions[:num_questions]
 
     except Exception:
+        skill_1 = skills[0] if skills else "your main technology"
+        skill_2 = skills[1] if len(skills) > 1 else "your tools"
+        proj = projects[0] if projects else "your key project"
         return [
-            "Walk us through your most technically challenging project.",
-            "What design or implementation decisions did you personally make?",
-            "How does your experience prepare you for this role?"
-        ]
+            f"I see you worked with {skill_1}. Can you explain how you used it in practice?",
+            f"Your resume mentions {proj}. What was the most challenging technical aspect?",
+            f"Tell me about your experience with {skill_2} and a specific problem you solved with it."
+        ][:num_questions]
 
 
 # ======================================================
@@ -10051,7 +10107,8 @@ with tab4:
     # UPDATED: AI-Generated Questions using LLM with DIFFICULTY SUPPORT
     def generate_interview_questions_with_llm(domain, role, interview_type, num_questions, difficulty="Medium"):
         """
-        Generate interview questions using LLM based on domain, role, type, and difficulty.
+        Generate GENERIC interview questions based on domain and role only.
+        These questions should NOT reference any resume content.
 
         FIXED: Now difficulty is passed into LLM prompt and affects question complexity
         """
@@ -10062,16 +10119,18 @@ with tab4:
             "Hard": "Generate DEEP TECHNICAL, SYSTEM DESIGN, and COMPLEX PROBLEM-SOLVING questions. Include architecture decisions, trade-offs, scalability concerns, and advanced concepts. Suitable for senior-level candidates."
         }
 
-        prompt = f"""You are an expert interviewer.
+        prompt = f"""You are an expert interviewer conducting a {interview_type} interview.
 
-Generate EXACTLY {num_questions} unique {interview_type} interview questions
-for the role of {role} in {domain}.
+Generate EXACTLY {num_questions} GENERIC interview questions for a {role} position in {domain}.
 
 DIFFICULTY LEVEL: {difficulty}
 {difficulty_instructions.get(difficulty, difficulty_instructions["Medium"])}
 
 CRITICAL REQUIREMENTS:
 - Generate EXACTLY {num_questions} questions - no more, no less
+- Questions must be GENERIC and applicable to ANY {role} candidate
+- DO NOT reference specific projects, companies, or resume details
+- Ask about general skills, knowledge, and scenarios typical for this role
 - Keep each question concise (1-2 sentences max)
 - Avoid duplicates
 - Match the difficulty level specified above
@@ -10080,11 +10139,11 @@ CRITICAL REQUIREMENTS:
 - DO NOT add any introductory text or explanations
 
 Output format example:
-What is your experience with cloud technologies?
-How would you handle a system outage?
-Describe your approach to code reviews.
+What are the key principles of {domain} that every {role} should know?
+How would you approach debugging a production issue?
+Explain the trade-offs between different architectural patterns.
 
-Generate exactly {num_questions} questions now:
+Generate exactly {num_questions} generic questions now:
 """
 
         try:
@@ -10631,7 +10690,11 @@ Generate exactly {num_questions} questions now:
 
                 if st.button("🚀 Start Mock Interview"):
                     with st.spinner("Generating personalized questions using AI..."):
-                        # Generate resume-based questions
+                        # Calculate ~70% resume-based, ~30% generic
+                        num_resume_questions = max(1, int(num_questions * 0.7))
+                        num_generic_questions = num_questions - num_resume_questions
+
+                        # Generate resume-based questions (~70%)
                         resume_based_qs = []
                         if st.session_state.resume_context:
                             with st.spinner("Creating resume-based questions..."):
@@ -10640,19 +10703,18 @@ Generate exactly {num_questions} questions now:
                                     selected_role,
                                     selected_domain,
                                     interview_difficulty,
-                                    num_questions=2
+                                    num_questions=num_resume_questions
                                 )
 
-                        # Generate generic questions
+                        # Generate generic questions (~30%)
                         generic_qs = []
-                        remaining_questions = num_questions - len(resume_based_qs)
-                        if remaining_questions > 0:
+                        if num_generic_questions > 0:
                             with st.spinner("Creating generic interview questions..."):
                                 generic_qs = generate_interview_questions_with_llm(
                                     selected_domain,
                                     selected_role,
                                     interview_type,
-                                    remaining_questions,
+                                    num_generic_questions,
                                     interview_difficulty
                                 )
 
@@ -10792,6 +10854,9 @@ Generate exactly {num_questions} questions now:
                         if not answer.strip():
                             answer = "⚠️ No Answer"
 
+                        # Determine if current question is resume-based
+                        is_resume_question = current_index <= num_resume_qs
+
                         # Evaluate answer using enhanced evaluation with role/domain context
                         with st.spinner("Evaluating your answer..."):
                             eval_result = evaluate_interview_answer_for_scores(
@@ -10799,7 +10864,9 @@ Generate exactly {num_questions} questions now:
                                 question,
                                 st.session_state.interview_difficulty,
                                 role=selected_role,
-                                domain=selected_domain
+                                domain=selected_domain,
+                                is_resume_based=is_resume_question,
+                                resume_context=st.session_state.resume_context if is_resume_question else None
                             )
 
                         # FIXED: Store answer, scores, and feedback - ensuring all are tracked properly
@@ -10817,6 +10884,9 @@ Generate exactly {num_questions} questions now:
                                     st.session_state.current_dynamic_interview_question + 1,
                                     eval_result["followup"]
                                 )
+                                # Track that this follow-up matches the parent question type
+                                if is_resume_question:
+                                    st.session_state.resume_based_questions.append(eval_result["followup"])
 
                         st.warning("⏰ Time's up! Answer auto-submitted.")
                         st.rerun()
@@ -10825,6 +10895,9 @@ Generate exactly {num_questions} questions now:
                     if not st.session_state.dynamic_answer_submitted and remaining_time > 0:
                         if st.button("Submit Answer & Get Feedback"):
                             if answer.strip():
+                                # Determine if current question is resume-based
+                                is_resume_question = current_index <= num_resume_qs
+
                                 with st.spinner("Evaluating your answer..."):
                                     # Evaluate answer using enhanced evaluation with role/domain context
                                     eval_result = evaluate_interview_answer_for_scores(
@@ -10832,7 +10905,9 @@ Generate exactly {num_questions} questions now:
                                         question,
                                         st.session_state.interview_difficulty,
                                         role=selected_role,
-                                        domain=selected_domain
+                                        domain=selected_domain,
+                                        is_resume_based=is_resume_question,
+                                        resume_context=st.session_state.resume_context if is_resume_question else None
                                     )
 
                                     # FIXED: Store answer, scores, and feedback ensuring proper tracking
@@ -10849,6 +10924,9 @@ Generate exactly {num_questions} questions now:
                                                 st.session_state.current_dynamic_interview_question + 1,
                                                 eval_result["followup"]
                                             )
+                                            # Track that this follow-up matches the parent question type
+                                            if is_resume_question:
+                                                st.session_state.resume_based_questions.append(eval_result["followup"])
 
                                     st.rerun()
                             else:
