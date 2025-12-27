@@ -9073,7 +9073,7 @@ Generate now:
             if len(cleaned_questions) >= num_questions:
                 break
 
-        if len(cleaned_questions) < num_questions:
+        while len(cleaned_questions) < num_questions:
             cleaned_questions.append(
                 f"Explain your most significant project and the technical decisions you made."
             )
